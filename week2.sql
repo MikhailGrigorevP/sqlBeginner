@@ -62,8 +62,20 @@ SELECT good.name AS good_name FROM good
 # Выведите список всех категорий продуктов и количество продаж товаров, относящихся к данной категории. 
 # Под количеством продаж товаров подразумевается суммарное количество единиц товара данной категории, фигурирующих в заказах с любым статусом.
 
-SELECT category.name AS good_name, sale.sale_num AS sale_num FROM category_has_good
-    JOIN good ON category_has_good.good_id = good.id
-	JOIN category ON category_has_good.category_id = category.id
-    WHERE category.name = 'Cakes'
+SELECT category.name AS good_name, COUNT(sale.id) AS sale_num FROM category
+	LEFT JOIN category_has_good ON category.id = category_has_good.category_id
+    LEFT JOIN sale_has_good ON sale_has_good.good_id = category_has_good.good_id
+	LEFT JOIN sale ON sale_has_good.sale_id = sale.id
+    GROUP BY good_name;
+    
+# Выведите список источников, из которых не было клиентов, либо клиенты пришедшие из которых не совершали заказов или отказывались от заказов. 
+# Под клиентами, которые отказывались от заказов, необходимо понимать клиентов, у которых есть заказы, которые на момент выполнения запроса находятся в состоянии 'rejected'. 
+# В запросе необходимо использовать оператор UNION для объединения выборок по разным условиям.
 
+SELECT source.name AS source_name FROM source
+  WHERE NOT EXISTS (SELECT * FROM client WHERE client.source_id = source.id)
+UNION
+SELECT source.name FROM source
+    INNER JOIN client ON client.source_id = source.id
+    INNER JOIN sale ON sale.client_id = client.id
+    INNER JOIN status ON status.id = sale.status_id WHERE status.name = "rejected";
